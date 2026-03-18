@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyron Medical — Patient Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --kyron-primary: #0D9488;
+  --kyron-primary-dark: #0F766E;
+  --kyron-primary-light: #14B8A6;
+  --kyron-accent: #06B6D4;
+  --kyron-bg: #0A0F1C;
+  --kyron-surface: rgba(255,255,255,0.04);
+  --kyron-glass: rgba(255,255,255,0.06);
+  --kyron-glass-border: rgba(255,255,255,0.1);
+  --kyron-glass-strong: rgba(255,255,255,0.1);
+  --kyron-text: #F1F5F9;
+  --kyron-text-muted: #94A3B8;
+  --kyron-text-dim: #64748B;
+  --kyron-gradient: linear-gradient(135deg, #0D9488, #06B6D4);
+  --kyron-glow: 0 0 40px rgba(13,148,136,0.15);
+  --kyron-purple: #8B5CF6;
+  --kyron-purple-glow: rgba(139,92,246,0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--kyron-bg); color: var(--kyron-text);
+  min-height: 100vh; overflow: hidden;
+}
+
+/* Animated background */
+.bg-mesh { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+.bg-mesh .orb {
+  position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.bg-mesh .orb:nth-child(1) { width: 500px; height: 500px; background: #0D9488; top: -10%; left: -5%; }
+.bg-mesh .orb:nth-child(2) { width: 400px; height: 400px; background: #06B6D4; bottom: -10%; right: -5%; animation-delay: -7s; }
+.bg-mesh .orb:nth-child(3) { width: 300px; height: 300px; background: #8B5CF6; top: 50%; left: 50%; animation-delay: -14s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+.app {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  height: 100vh; max-width: 900px; margin: 0 auto; padding: 16px;
+}
+
+/* Header */
+.header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px; margin-bottom: 16px;
+  background: var(--kyron-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--kyron-glass-border);
+  border-radius: 20px; box-shadow: var(--kyron-glow);
+  animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } }
+
+.logo {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--kyron-gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: white;
+  box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+  position: relative; overflow: hidden;
+}
+.logo::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer { 0%, 100% { transform: translateX(-100%); } 50% { transform: translateX(100%); } }
+
+.header-text h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.header-text p { font-size: 13px; color: var(--kyron-text-muted); margin-top: 2px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.header-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--kyron-primary-light); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--kyron-primary-light);
+  box-shadow: 0 0 8px var(--kyron-primary-light); animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Call status banner */
+.call-banner {
+  display: none; padding: 12px 20px; margin-bottom: 12px;
+  border-radius: 16px; border: 1px solid rgba(139,92,246,0.3);
+  background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.05));
+  backdrop-filter: blur(16px);
+  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  align-items: center; gap: 12px;
+}
+.call-banner.visible { display: flex; }
+.call-banner .call-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(139,92,246,0.2); display: flex;
+  align-items: center; justify-content: center;
+}
+.call-banner .call-icon svg { width: 18px; height: 18px; color: #C4B5FD; }
+.call-banner .call-info { flex: 1; }
+.call-banner .call-info .call-title { font-size: 13px; font-weight: 500; color: #C4B5FD; }
+.call-banner .call-info .call-detail { font-size: 12px; color: var(--kyron-text-muted); margin-top: 2px; }
+.call-timer { font-size: 14px; font-weight: 600; color: #C4B5FD; font-variant-numeric: tabular-nums; }
+
+/* Calling animation */
+.call-ripple {
+  position: relative; width: 36px; height: 36px;
+}
+.call-ripple::before, .call-ripple::after {
+  content: ''; position: absolute; inset: -4px;
+  border: 2px solid rgba(139,92,246,0.4); border-radius: 50%;
+  animation: ripple 1.5s ease-out infinite;
+}
+.call-ripple::after { animation-delay: 0.5s; }
+@keyframes ripple { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Chat area */
+.chat-container {
+  flex: 1; overflow-y: auto; padding: 8px 4px;
+  display: flex; flex-direction: column; gap: 12px;
+  scroll-behavior: smooth;
+  mask-image: linear-gradient(transparent 0%, black 3%, black 97%, transparent 100%);
+}
+.chat-container::-webkit-scrollbar { width: 4px; }
+.chat-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Messages */
+.message {
+  display: flex; gap: 10px; max-width: 85%;
+  animation: msgIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes msgIn { from { opacity: 0; transform: translateY(12px); } }
+.message.user { align-self: flex-end; flex-direction: row-reverse; }
+.message.assistant { align-self: flex-start; }
+.message.system {
+  align-self: center; max-width: 70%;
+}
+
+.msg-avatar {
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;
+}
+.message.assistant .msg-avatar { background: var(--kyron-gradient); color: white; }
+.message.user .msg-avatar { background: rgba(139,92,246,0.2); color: #A78BFA; border: 1px solid rgba(139,92,246,0.3); }
+
+.msg-bubble {
+  padding: 12px 16px; border-radius: 16px;
+  font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;
+}
+.message.assistant .msg-bubble {
+  background: var(--kyron-glass); backdrop-filter: blur(16px);
+  border: 1px solid var(--kyron-glass-border); border-bottom-left-radius: 6px;
+}
+.message.user .msg-bubble {
+  background: linear-gradient(135deg, rgba(13,148,136,0.25), rgba(6,182,212,0.2));
+  border: 1px solid rgba(13,148,136,0.3); border-bottom-right-radius: 6px;
+}
+.message.system .msg-bubble {
+  background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2);
+  font-size: 12px; color: var(--kyron-text-muted); text-align: center;
+  border-radius: 12px; padding: 8px 16px;
+}
+
+/* Appointment card in chat */
+.appt-card {
+  background: var(--kyron-glass-strong); border: 1px solid rgba(13,148,136,0.3);
+  border-radius: 14px; padding: 16px; margin-top: 8px;
+  border-left: 3px solid var(--kyron-primary);
+}
+.appt-card .appt-header { font-size: 13px; font-weight: 600; color: var(--kyron-primary-light); margin-bottom: 8px; }
+.appt-card .appt-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.appt-card .appt-label { color: var(--kyron-text-muted); }
+.appt-card .appt-value { color: var(--kyron-text); font-weight: 500; }
+.appt-card .appt-actions { display: flex; gap: 8px; margin-top: 12px; }
+.appt-card .appt-actions button {
+  flex: 1; padding: 8px; border-radius: 8px; border: none;
+  font-family: inherit; font-size: 12px; cursor: pointer; transition: all 0.2s;
+}
+.btn-reschedule {
+  background: rgba(13,148,136,0.15); color: var(--kyron-primary-light);
+  border: 1px solid rgba(13,148,136,0.3) !important;
+}
+.btn-reschedule:hover { background: rgba(13,148,136,0.25); }
+.btn-cancel-appt {
+  background: rgba(239,68,68,0.1); color: #FCA5A5;
+  border: 1px solid rgba(239,68,68,0.2) !important;
+}
+.btn-cancel-appt:hover { background: rgba(239,68,68,0.2); }
+
+/* Doctor card */
+.doctor-card {
+  background: var(--kyron-glass-strong); border: 1px solid var(--kyron-glass-border);
+  border-radius: 14px; padding: 14px; margin-top: 6px; display: flex; gap: 12px; align-items: center;
+}
+.doctor-avatar {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--kyron-gradient); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 600; color: white; flex-shrink: 0;
+}
+.doctor-info { flex: 1; }
+.doctor-info .doctor-name { font-size: 14px; font-weight: 500; }
+.doctor-info .doctor-spec { font-size: 12px; color: var(--kyron-text-muted); margin-top: 2px; }
+.doctor-wait { font-size: 11px; color: var(--kyron-primary-light); background: rgba(13,148,136,0.1); padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
+
+/* Typing indicator */
+.typing-indicator {
+  display: none; align-self: flex-start;
+  padding: 12px 20px; border-radius: 16px;
+  background: var(--kyron-glass); border: 1px solid var(--kyron-glass-border); backdrop-filter: blur(16px);
+}
+.typing-indicator.visible { display: flex; gap: 5px; align-items: center; }
+.typing-indicator span {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--kyron-primary-light); opacity: 0.4;
+  animation: typingBounce 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+/* Input area */
+.input-area {
+  margin-top: 12px; padding: 12px;
+  background: var(--kyron-glass); backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--kyron-glass-border); border-radius: 20px;
+  box-shadow: var(--kyron-glow);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } }
+
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+#messageInput {
+  flex: 1; background: var(--kyron-surface); border: 1px solid var(--kyron-glass-border);
+  border-radius: 14px; padding: 12px 16px; color: var(--kyron-text);
+  font-family: inherit; font-size: 14px; resize: none; min-height: 44px; max-height: 120px;
+  transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+}
+#messageInput:focus { border-color: rgba(13,148,136,0.5); box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+#messageInput::placeholder { color: var(--kyron-text-dim); }
+
+.btn-send {
+  width: 44px; height: 44px; border-radius: 12px; border: none;
+  background: var(--kyron-gradient); color: white; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+}
+.btn-send:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(13,148,136,0.4); }
+.btn-send:active { transform: scale(0.95); }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-send svg { width: 18px; height: 18px; }
+
+.action-bar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn-action {
+  height: 36px; padding: 0 14px; border-radius: 10px;
+  background: var(--kyron-surface); border: 1px solid var(--kyron-glass-border);
+  color: var(--kyron-text-muted); font-family: inherit; font-size: 12px;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.btn-action:hover { border-color: rgba(13,148,136,0.4); color: var(--kyron-primary-light); background: rgba(13,148,136,0.08); }
+.btn-action svg { width: 14px; height: 14px; }
+
+.btn-call {
+  background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.15));
+  border-color: rgba(139,92,246,0.3); color: #C4B5FD;
+}
+.btn-call:hover { background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.25)); box-shadow: 0 4px 16px rgba(139,92,246,0.2); }
+
+/* Welcome screen */
+.welcome {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; text-align: center; padding: 40px 20px; animation: fadeIn 0.8s;
+}
+@keyframes fadeIn { from { opacity: 0; } }
+.welcome-icon {
+  width: 80px; height: 80px; border-radius: 24px; background: var(--kyron-gradient);
+  display: flex; align-items: center; justify-content: center; font-size: 36px;
+  margin-bottom: 24px; box-shadow: 0 8px 32px rgba(13,148,136,0.3);
+  animation: welcomePulse 3s ease-in-out infinite; position: relative; overflow: hidden;
+}
+@keyframes welcomePulse { 0%, 100% { box-shadow: 0 8px 32px rgba(13,148,136,0.3); } 50% { box-shadow: 0 8px 48px rgba(13,148,136,0.5); } }
+.welcome-icon::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+.welcome h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.02em; }
+.welcome p { font-size: 14px; color: var(--kyron-text-muted); max-width: 380px; line-height: 1.6; }
+
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 24px; }
+.quick-action {
+  padding: 10px 18px; border-radius: 12px; background: var(--kyron-glass);
+  border: 1px solid var(--kyron-glass-border); color: var(--kyron-text);
+  font-size: 13px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+}
+.quick-action:hover { border-color: rgba(13,148,136,0.4); background: rgba(13,148,136,0.08); color: var(--kyron-primary-light); }
+
+/* Phone modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.visible { display: flex; animation: fadeIn 0.3s; }
+.modal {
+  background: rgba(15,23,42,0.95); border: 1px solid var(--kyron-glass-border);
+  border-radius: 24px; padding: 32px; width: 90%; max-width: 420px;
+  backdrop-filter: blur(20px); box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+  animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } }
+.modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.modal p { font-size: 13px; color: var(--kyron-text-muted); margin-bottom: 20px; line-height: 1.5; }
+.modal input[type="tel"] {
+  width: 100%; padding: 12px 16px; border-radius: 12px; background: var(--kyron-surface);
+  border: 1px solid var(--kyron-glass-border); color: var(--kyron-text);
+  font-family: inherit; font-size: 15px; outline: none; margin-bottom: 12px;
+}
+.modal input[type="tel"]:focus { border-color: rgba(139,92,246,0.5); }
+
+.sms-opt-in { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 13px; color: var(--kyron-text-muted); }
+.sms-opt-in input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--kyron-primary); }
+
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions button {
+  flex: 1; padding: 12px; border-radius: 12px; border: none;
+  font-family: inherit; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s;
+}
+.btn-modal-cancel { background: var(--kyron-surface); color: var(--kyron-text-muted); border: 1px solid var(--kyron-glass-border) !important; }
+.btn-modal-call {
+  background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white;
+  box-shadow: 0 4px 12px var(--kyron-purple-glow);
+}
+.btn-modal-call:hover { box-shadow: 0 6px 20px var(--kyron-purple-glow); }
+
+.emergency-hint {
+  margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15);
+  font-size: 11px; color: #FCA5A5; line-height: 1.5;
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; right: 20px; z-index: 200;
+  padding: 14px 20px; border-radius: 14px; background: rgba(15,23,42,0.95);
+  border: 1px solid var(--kyron-glass-border); backdrop-filter: blur(16px);
+  color: var(--kyron-text); font-size: 13px; max-width: 360px;
+  transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px;
+}
+.toast.visible { transform: translateX(0); }
+.toast.success { border-color: rgba(13,148,136,0.4); }
+.toast.error { border-color: rgba(239,68,68,0.4); }
+.toast.calling { border-color: rgba(139,92,246,0.4); }
+
+@media (max-width: 600px) {
+  .app { padding: 8px; }
+  .header { padding: 12px 16px; border-radius: 16px; }
+  .message { max-width: 92%; }
+  .input-area { border-radius: 16px; padding: 10px; }
+  .action-bar { gap: 6px; }
+  .btn-action { padding: 0 10px; font-size: 11px; height: 32px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-mesh"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+
+<div class="app">
+  <header class="header">
+    <div class="logo">K</div>
+    <div class="header-text">
+      <h1>Kyron Medical</h1>
+      <p>AI Patient Assistant</p>
+    </div>
+    <div class="header-right">
+      <div class="header-status">
+        <div class="status-dot"></div>
+        <span>Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Call status banner -->
+  <div class="call-banner" id="callBanner">
+    <div class="call-ripple">
+      <div class="call-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.11 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      </div>
+    </div>
+    <div class="call-info">
+      <div class="call-title" id="callTitle">Calling you now...</div>
+      <div class="call-detail" id="callDetail">Your phone should ring shortly</div>
+    </div>
+    <div class="call-timer" id="callTimer"></div>
+  </div>
+
+  <div class="chat-container" id="chatContainer">
+    <div class="welcome" id="welcomeScreen">
+      <div class="welcome-icon">K</div>
+      <h2>Welcome to Kyron Medical</h2>
+      <p>I'm Kyra, your AI assistant. I can help you schedule appointments, check prescriptions, manage existing bookings, or answer questions about our practice.</p>
+      <div class="quick-actions">
+        <button class="quick-action" onclick="sendQuick('I need to schedule an appointment')">Schedule appointment</button>
+        <button class="quick-action" onclick="sendQuick('I want to check on a prescription refill')">Prescription refill</button>
+        <button class="quick-action" onclick="sendQuick('What are your office hours and address?')">Hours &amp; location</button>
+        <button class="quick-action" onclick="sendQuick('I need to check on my existing appointment')">My appointments</button>
+        <button class="quick-action" onclick="sendQuick('How soon can I see a doctor?')">Next availability</button>
+      </div>
+      <div class="emergency-hint" style="margin-top:20px; max-width: 380px;">
+        If you are experiencing a medical emergency, please call <strong>911</strong> or go to your nearest emergency room immediately.
+      </div>
+    </div>
+    <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="messageInput" placeholder="Type your message..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+      <button class="btn-send" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="action-bar">
+      <button class="btn-action btn-call" onclick="showPhoneModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.11 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Continue by phone
+      </button>
+      <button class="btn-action" onclick="sendQuick('What doctors do you have?')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Our doctors
+      </button>
+      <button class="btn-action" onclick="sendQuick('I need to reschedule my appointment')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Reschedule
+      </button>
+      <button class="btn-action" onclick="sendQuick('I need to cancel my appointment')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Phone Call Modal -->
+<div class="modal-overlay" id="phoneModal">
+  <div class="modal">
+    <h2>Continue by phone</h2>
+    <p>We'll call you right now and pick up the conversation where we left off. The AI assistant will have full context from this chat.</p>
+    <input type="tel" id="phoneInput" placeholder="(555) 123-4567" autocomplete="tel"
+           onkeydown="if(event.key==='Enter')initiateCall()">
+    <label class="sms-opt-in">
+      <input type="checkbox" id="smsOptIn" checked>
+      Send me text message updates about my appointments
+    </label>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="hidePhoneModal()">Cancel</button>
+      <button class="btn-modal-call" onclick="initiateCall()">Call me now</button>
+    </div>
+    <div class="emergency-hint">
+      If you're experiencing a medical emergency, hang up and call <strong>911</strong>.
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let sessionId = null;
+let chatStarted = false;
+let callTimerInterval = null;
+let callStartTime = null;
+
+const input = document.getElementById('messageInput');
+input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+
+function genId() { return 'sess_' + crypto.randomUUID(); }
+
+function addMessage(role, content, extra) {
+  if (!chatStarted) { document.getElementById('welcomeScreen').style.display = 'none'; chatStarted = true; }
+  const container = document.getElementById('chatContainer');
+  const typing = document.getElementById('typingIndicator');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  if (role !== 'system') {
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = role === 'assistant' ? 'K' : 'Y';
+    div.appendChild(avatar);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  let html = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  bubble.innerHTML = html;
+  div.appendChild(bubble);
+
+  // Append appointment card if context has one
+  if (extra?.appointment) {
+    const a = extra.appointment;
+    const card = document.createElement('div');
+    card.className = 'appt-card';
+    card.innerHTML = `
+      <div class="appt-header">Appointment Confirmed</div>
+      <div class="appt-row"><span class="appt-label">Doctor</span><span class="appt-value">${a.doctor_name || ''}</span></div>
+      <div class="appt-row"><span class="appt-label">Date</span><span class="appt-value">${a.date || ''}</span></div>
+      <div class="appt-row"><span class="appt-label">Time</span><span class="appt-value">${a.time || ''}</span></div>
+      <div class="appt-row"><span class="appt-label">Location</span><span class="appt-value">450 Brookline Ave, Suite 300</span></div>
+      <div class="appt-actions">
+        <button class="btn-reschedule" onclick="sendQuick('I need to reschedule my appointment')">Reschedule</button>
+        <button class="btn-cancel-appt" onclick="sendQuick('I need to cancel my appointment')">Cancel</button>
+      </div>`;
+    bubble.appendChild(card);
+  }
+
+  container.insertBefore(div, typing);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() { document.getElementById('typingIndicator').classList.add('visible'); document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight; }
+function hideTyping() { document.getElementById('typingIndicator').classList.remove('visible'); }
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} visible`;
+  setTimeout(() => t.classList.remove('visible'), 4000);
+}
+
+// Call status management
+function showCallBanner(status, detail) {
+  const banner = document.getElementById('callBanner');
+  document.getElementById('callTitle').textContent = status;
+  document.getElementById('callDetail').textContent = detail;
+  banner.classList.add('visible');
+}
+function hideCallBanner() {
+  document.getElementById('callBanner').classList.remove('visible');
+  if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+}
+function startCallTimer() {
+  callStartTime = Date.now();
+  callTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const s = (elapsed % 60).toString().padStart(2, '0');
+    document.getElementById('callTimer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+async function sendMessage() {
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!sessionId) sessionId = genId();
+  input.value = ''; input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+  addMessage('user', msg);
+  showTyping();
+
+  try {
+    const res = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, session_id: sessionId }),
+    });
+    const data = await res.json();
+    hideTyping();
+
+    if (data.error) {
+      addMessage('assistant', 'I apologize, but I ran into an issue. Could you try again?');
+    } else {
+      const extra = {};
+      if (data.context?.last_appointment) extra.appointment = data.context.last_appointment;
+      addMessage('assistant', data.response, extra);
+    }
+  } catch (err) {
+    hideTyping();
+    addMessage('assistant', "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.");
+  }
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function sendQuick(msg) { input.value = msg; sendMessage(); }
+
+function showPhoneModal() {
+  if (!sessionId) { showToast('Start a chat first so the phone AI has context.', 'error'); return; }
+  document.getElementById('phoneModal').classList.add('visible');
+  document.getElementById('phoneInput').focus();
+}
+function hidePhoneModal() { document.getElementById('phoneModal').classList.remove('visible'); }
+
+async function initiateCall() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (!phone) { showToast('Please enter your phone number.', 'error'); return; }
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length < 10) { showToast('Please enter a valid 10-digit phone number.', 'error'); return; }
+  const formatted = cleaned.length === 10 ? `+1${cleaned}` : `+${cleaned}`;
+  const smsOptIn = document.getElementById('smsOptIn').checked;
+
+  hidePhoneModal();
+  showCallBanner('Calling you now...', `Dialing ${phone}`);
+  showToast('Initiating your call...', 'calling');
+  addMessage('system', 'Initiating phone call — your phone should ring shortly.');
+
+  try {
+    const res = await fetch(`${API}/api/voice-handoff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number: formatted, session_id: sessionId, sms_opt_in: smsOptIn }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showCallBanner(
+        data.is_callback ? 'Reconnecting call...' : 'Call connected',
+        data.is_callback ? 'Picking up where we left off' : 'Kyra is on the line'
+      );
+      startCallTimer();
+      showToast('Call connected! Kyra has your full chat context.', 'success');
+      addMessage('assistant',
+        data.is_callback
+          ? "I'm calling you back now! I remember everything from our conversation and I'll pick up right where we left off."
+          : "I'm calling you now! When you pick up, I'll have the full context from our chat. We can continue the conversation seamlessly by voice."
+      );
+
+      // Auto-hide banner after 2 minutes (typical call)
+      setTimeout(() => { hideCallBanner(); }, 120000);
+    } else {
+      hideCallBanner();
+      showToast('Unable to place the call. Please try again.', 'error');
+      addMessage('assistant', "I wasn't able to connect the call. Would you like to try again, or is there something else I can help with in chat?");
+    }
+  } catch (err) {
+    hideCallBanner();
+    showToast('Connection error. Please try again.', 'error');
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hidePhoneModal(); });
+document.getElementById('phoneModal').addEventListener('click', e => { if (e.target === e.currentTarget) hidePhoneModal(); });
+
+// Format phone input as user types
+document.getElementById('phoneInput').addEventListener('input', function(e) {
+  let v = this.value.replace(/\D/g, '');
+  if (v.length > 0) {
+    if (v.length <= 3) this.value = `(${v}`;
+    else if (v.length <= 6) this.value = `(${v.slice(0,3)}) ${v.slice(3)}`;
+    else this.value = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6,10)}`;
+  }
+});
+
+input.focus();
+</script>
+</body>
+</html>
