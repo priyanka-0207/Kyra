@@ -5,11 +5,6 @@ A smart, voice-enabled patient assistant for Kyron Medical Group. Patients can c
 
 Built as a full-stack application with a liquid glass UI, real-time AI chat, semantic doctor matching, and a voice AI handoff system.
 
-## Live Demo
-
-🌐 **Web App:** [https://your-domain.com](https://your-domain.com)  
-📞 **AI Phone Line:** +1 (xxx) xxx-xxxx
-
 ## What It Does
 
 **Appointment Scheduling** — Patients describe their health concern in natural language. The AI figures out which specialist they need (orthopedics for knee pain, cardiology for chest issues, etc.) and shows real available time slots. After collecting the patient's info, it books the appointment and sends a confirmation email.
