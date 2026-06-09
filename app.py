@@ -1,8 +1,3 @@
-"""
-Kyron Medical - Patient AI Assistant Backend
-Flask + OpenAI GPT-4o + Vapi Voice AI
-"""
-
 import os
 import json
 import uuid
